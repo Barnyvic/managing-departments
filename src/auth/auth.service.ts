@@ -1,23 +1,39 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { User } from "./entities/user.entity";
+import * as argon2 from "argon2";
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    private readonly jwtService: JwtService
+  ) {}
 
-  async validateUser(username: string, password: string): Promise<any> {
-    // In a real application, you would validate against a database
-    // This is just a simple example
-    if (username === "admin" && password === "admin") {
-      return { id: 1, username: "admin" };
+  async validateUser(username: string, password: string): Promise<User | null> {
+    const user = await this.usersRepository.findOne({ where: { username } });
+    if (user && (await argon2.verify(user.password, password))) {
+      return user;
     }
     return null;
   }
 
-  async login(user: any) {
+  async login(user: User) {
     const payload = { username: user.username, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
     };
+  }
+
+  async register(username: string, password: string): Promise<User> {
+    const hashedPassword = await argon2.hash(password);
+    const user = this.usersRepository.create({
+      username,
+      password: hashedPassword,
+    });
+    return this.usersRepository.save(user);
   }
 }
