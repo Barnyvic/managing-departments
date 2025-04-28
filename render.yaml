@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: department-management-api
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_HOST
+        fromDatabase:
+          name: department-management-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: department-management-db
+          property: port
+      - key: DB_USERNAME
+        fromDatabase:
+          name: department-management-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: department-management-db
+          property: password
+      - key: DB_DATABASE
+        fromDatabase:
+          name: department-management-db
+          property: database
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+
+databases:
+  - name: department-management-db
+    databaseName: department_management
+    user: postgres
+    plan: free

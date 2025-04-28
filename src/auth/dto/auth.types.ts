@@ -6,6 +6,21 @@ export class AuthResponse {
   access_token: string;
 }
 
+@ObjectType()
+export class RegisterResponse {
+  @Field()
+  id: number;
+
+  @Field()
+  username: string;
+
+  @Field()
+  createdAt: Date;
+
+  @Field()
+  updatedAt: Date;
+}
+
 @InputType()
 export class LoginInput {
   @Field()
