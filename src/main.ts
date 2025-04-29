@@ -4,7 +4,6 @@ import { ConfigService } from "@nestjs/config";
 import helmet from "helmet";
 import * as csurf from "csurf";
 import { ValidationPipe } from "@nestjs/common";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -49,18 +48,8 @@ async function bootstrap() {
     })
   );
 
-  // Swagger documentation
-  const config = new DocumentBuilder()
-    .setTitle("Department Management API")
-    .setDescription("API for managing departments and sub-departments")
-    .setVersion("1.0")
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api", app, document);
-
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Swagger documentation: http://localhost:${port}/api`);
+  console.log(`GraphQL Playground: http://localhost:${port}/graphql`);
 }
 bootstrap();
