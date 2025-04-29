@@ -2,7 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ConfigService } from "@nestjs/config";
 import helmet from "helmet";
-import * as csurf from "csurf";
+import * as session from "express-session";
 import { ValidationPipe } from "@nestjs/common";
 
 async function bootstrap() {
@@ -36,8 +36,19 @@ async function bootstrap() {
     })
   );
 
-  // CSRF protection
-  app.use(csurf());
+  // Session middleware (needed for some features)
+  app.use(
+    session({
+      secret: configService.get("SESSION_SECRET") || "your-session-secret",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        sameSite: "lax",
+      },
+    })
+  );
 
   // Global validation pipe
   app.useGlobalPipes(

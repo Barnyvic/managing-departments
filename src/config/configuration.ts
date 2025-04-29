@@ -17,4 +17,7 @@ export default () => ({
     playground: process.env.GRAPHQL_PLAYGROUND === "true",
     introspection: process.env.GRAPHQL_INTROSPECTION === "true",
   },
+  session: {
+    secret: process.env.SESSION_SECRET || "your-session-secret",
+  },
 });

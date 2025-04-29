@@ -1,4 +1,5 @@
 import { Field, ObjectType, InputType } from "@nestjs/graphql";
+import { IsNotEmpty, MinLength } from "class-validator";
 
 @ObjectType()
 export class AuthResponse {
@@ -24,17 +25,23 @@ export class RegisterResponse {
 @InputType()
 export class LoginInput {
   @Field()
+  @IsNotEmpty()
   username: string;
 
   @Field()
+  @IsNotEmpty()
+  @MinLength(6)
   password: string;
 }
 
 @InputType()
 export class RegisterInput {
   @Field()
+  @IsNotEmpty()
   username: string;
 
   @Field()
+  @IsNotEmpty()
+  @MinLength(6)
   password: string;
 }

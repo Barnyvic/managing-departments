@@ -7,6 +7,7 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { SubDepartmentInput } from "./sub-department.input";
+import { Float } from "@nestjs/graphql";
 
 @InputType()
 export class CreateDepartmentInput {
@@ -32,9 +33,9 @@ export class UpdateDepartmentInput {
 
 @InputType()
 export class PaginationInput {
-  @Field({ defaultValue: 1 })
+  @Field(() => Float, { defaultValue: 1 })
   page: number;
 
-  @Field({ defaultValue: 10 })
+  @Field(() => Float, { defaultValue: 10 })
   limit: number;
 }

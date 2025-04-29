@@ -81,16 +81,20 @@ export class DepartmentsService {
         name: createDepartmentInput.name,
       });
 
+      const savedDepartment = await this.departmentsRepository.save(department);
+
       if (createDepartmentInput.subDepartments?.length) {
-        department.subDepartments = createDepartmentInput.subDepartments.map(
+        const subDepartments = createDepartmentInput.subDepartments.map(
           (subDept) =>
             this.subDepartmentsRepository.create({
               name: subDept.name,
+              department: savedDepartment,
             })
         );
+        savedDepartment.subDepartments =
+          await this.subDepartmentsRepository.save(subDepartments);
       }
 
-      const savedDepartment = await this.departmentsRepository.save(department);
       this.logger.log(`Created department with id: ${savedDepartment.id}`);
       return savedDepartment;
     } catch (error) {
