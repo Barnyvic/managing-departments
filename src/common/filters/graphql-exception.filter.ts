@@ -1,4 +1,4 @@
-import { Catch, ArgumentsHost } from "@nestjs/common";
+import { Catch, ArgumentsHost, UnauthorizedException } from "@nestjs/common";
 import { GqlExceptionFilter, GqlArgumentsHost } from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 
@@ -9,6 +9,16 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
 
     if (exception instanceof GraphQLError) {
       return exception;
+    }
+
+    if (exception instanceof UnauthorizedException) {
+      const response = exception.getResponse() as any;
+      return new GraphQLError(response.message || "Unauthorized", {
+        extensions: {
+          code: response.error || "UNAUTHORIZED",
+          statusCode: 401,
+        },
+      });
     }
 
     if (exception.extensions) {
