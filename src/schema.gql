@@ -45,23 +45,21 @@ type Department {
 type PaginatedDepartments {
   departments: [Department!]!
   total: Int!
-  page: Int!
-  limit: Int!
+  currentPage: Int!
   totalPages: Int!
 }
 
 type PaginatedSubDepartments {
   subDepartments: [SubDepartment!]!
   total: Int!
-  page: Int!
-  limit: Int!
+  currentPage: Int!
   totalPages: Int!
 }
 
 type Query {
-  getDepartments(pagination: PaginationInput!): PaginatedDepartments!
-  getSubDepartments(pagination: PaginationInput!, departmentId: ID): PaginatedSubDepartments!
-  getDepartment(id: ID!): Department!
+  getDepartments(paginationInput: PaginationInput!): PaginatedDepartments!
+  getSubDepartments(paginationInput: PaginationInput!, departmentId: Int): PaginatedSubDepartments!
+  getDepartment(id: Int!): Department!
 }
 
 input PaginationInput {
@@ -72,12 +70,12 @@ input PaginationInput {
 type Mutation {
   login(input: LoginInput!): AuthResponse!
   register(input: RegisterInput!): RegisterResponse!
-  createDepartment(input: CreateDepartmentInput!): Department!
-  updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
-  deleteDepartment(id: ID!): Department!
-  createSubDepartment(departmentId: ID!, input: SubDepartmentInput!): SubDepartment!
-  updateSubDepartment(id: ID!, input: UpdateSubDepartmentInput!): SubDepartment!
-  deleteSubDepartment(id: ID!): SubDepartment!
+  createDepartment(createDepartmentInput: CreateDepartmentInput!): Department!
+  updateDepartment(id: Int!, updateDepartmentInput: UpdateDepartmentInput!): Department!
+  removeDepartment(id: Int!): Department!
+  createSubDepartment(departmentId: Int!, createSubDepartmentInput: SubDepartmentInput!): SubDepartment!
+  updateSubDepartment(id: Int!, updateSubDepartmentInput: UpdateSubDepartmentInput!): SubDepartment!
+  removeSubDepartment(id: Int!): SubDepartment!
 }
 
 input LoginInput {

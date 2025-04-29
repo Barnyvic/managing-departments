@@ -1,105 +1,114 @@
-import { Resolver, Query, Mutation, Args, ID } from "@nestjs/graphql";
+import { Resolver, Query, Mutation, Args, Int } from "@nestjs/graphql";
 import { UseGuards } from "@nestjs/common";
 import { DepartmentsService } from "./departments.service";
+import { SubDepartmentsService } from "./services/sub-departments.service";
 import { Department } from "./entities/department.entity";
 import { SubDepartment } from "./entities/sub-department.entity";
-import { CreateDepartmentInput } from "./dto/department.input";
-import { UpdateDepartmentInput } from "./dto/department.input";
-import { SubDepartmentInput } from "./dto/sub-department.input";
-import { UpdateSubDepartmentInput } from "./dto/sub-department.input";
-import { PaginationInput } from "./dto/department.input";
-import { PaginatedDepartments } from "./dto/pagination.result";
-import { PaginatedSubDepartments } from "./dto/pagination.result";
+import {
+  CreateDepartmentInput,
+  UpdateDepartmentInput,
+  PaginationInput,
+} from "./dto/department.input";
+import {
+  SubDepartmentInput,
+  UpdateSubDepartmentInput,
+} from "./dto/sub-department.input";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { DepartmentOwnershipGuard } from "./guards/department-ownership.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { User } from "../auth/entities/user.entity";
+import { DepartmentOwnershipGuard } from "./guards/department-ownership.guard";
+import {
+  PaginatedDepartments,
+  PaginatedSubDepartments,
+} from "./entities/paginated-response.entity";
+import { Field, ObjectType } from "@nestjs/graphql";
+
 
 @Resolver(() => Department)
+@UseGuards(JwtAuthGuard)
 export class DepartmentsResolver {
-  constructor(private readonly departmentsService: DepartmentsService) {}
+  constructor(
+    private readonly departmentsService: DepartmentsService,
+    private readonly subDepartmentsService: SubDepartmentsService
+  ) {}
 
   @Query(() => PaginatedDepartments)
-  @UseGuards(JwtAuthGuard)
   async getDepartments(
-    @Args("pagination") pagination: PaginationInput,
+    @Args("paginationInput") paginationInput: PaginationInput,
     @CurrentUser() user: User
   ) {
-    return this.departmentsService.findAll(pagination, user);
+    return this.departmentsService.findAll(paginationInput, user);
   }
 
   @Query(() => PaginatedSubDepartments)
-  @UseGuards(JwtAuthGuard)
   async getSubDepartments(
-    @Args("pagination") pagination: PaginationInput,
-    @CurrentUser() user: User,
-    @Args("departmentId", { type: () => ID, nullable: true })
-    departmentId?: number
+    @Args("paginationInput") paginationInput: PaginationInput,
+    @Args("departmentId", { type: () => Int, nullable: true })
+    departmentId: number,
+    @CurrentUser() user: User
   ) {
-    return this.departmentsService.findAllSubDepartments(
-      pagination,
+    return this.subDepartmentsService.findAll(
+      paginationInput,
       user,
       departmentId
     );
   }
 
   @Query(() => Department)
-  @UseGuards(JwtAuthGuard)
-  async getDepartment(@Args("id", { type: () => ID }) id: number) {
+  @UseGuards(DepartmentOwnershipGuard)
+  async getDepartment(@Args("id", { type: () => Int }) id: number) {
     return this.departmentsService.findOne(id);
   }
 
   @Mutation(() => Department)
-  @UseGuards(JwtAuthGuard)
   async createDepartment(
-    @Args("input") createDepartmentInput: CreateDepartmentInput,
+    @Args("createDepartmentInput") createDepartmentInput: CreateDepartmentInput,
     @CurrentUser() user: User
   ) {
     return this.departmentsService.create(createDepartmentInput, user);
   }
 
   @Mutation(() => Department)
-  @UseGuards(JwtAuthGuard, DepartmentOwnershipGuard)
+  @UseGuards(DepartmentOwnershipGuard)
   async updateDepartment(
-    @Args("id", { type: () => ID }) id: number,
-    @Args("input") updateDepartmentInput: UpdateDepartmentInput
+    @Args("id", { type: () => Int }) id: number,
+    @Args("updateDepartmentInput") updateDepartmentInput: UpdateDepartmentInput
   ) {
     return this.departmentsService.update(id, updateDepartmentInput);
   }
 
   @Mutation(() => Department)
-  @UseGuards(JwtAuthGuard, DepartmentOwnershipGuard)
-  async deleteDepartment(@Args("id", { type: () => ID }) id: number) {
+  @UseGuards(DepartmentOwnershipGuard)
+  async removeDepartment(@Args("id", { type: () => Int }) id: number) {
     return this.departmentsService.remove(id);
   }
 
   @Mutation(() => SubDepartment)
-  @UseGuards(JwtAuthGuard, DepartmentOwnershipGuard)
+  @UseGuards(DepartmentOwnershipGuard)
   async createSubDepartment(
-    @Args("departmentId", { type: () => ID }) departmentId: number,
-    @Args("input") subDepartmentInput: SubDepartmentInput
+    @Args("departmentId", { type: () => Int }) departmentId: number,
+    @Args("createSubDepartmentInput")
+    createSubDepartmentInput: SubDepartmentInput
   ) {
-    return this.departmentsService.createSubDepartment(
+    return this.subDepartmentsService.create(
       departmentId,
-      subDepartmentInput
+      createSubDepartmentInput
     );
   }
 
   @Mutation(() => SubDepartment)
-  @UseGuards(JwtAuthGuard, DepartmentOwnershipGuard)
+  @UseGuards(DepartmentOwnershipGuard)
   async updateSubDepartment(
-    @Args("id", { type: () => ID }) id: number,
-    @Args("input") updateSubDepartmentInput: UpdateSubDepartmentInput
+    @Args("id", { type: () => Int }) id: number,
+    @Args("updateSubDepartmentInput")
+    updateSubDepartmentInput: UpdateSubDepartmentInput
   ) {
-    return this.departmentsService.updateSubDepartment(
-      id,
-      updateSubDepartmentInput
-    );
+    return this.subDepartmentsService.update(id, updateSubDepartmentInput);
   }
 
   @Mutation(() => SubDepartment)
-  @UseGuards(JwtAuthGuard, DepartmentOwnershipGuard)
-  async deleteSubDepartment(@Args("id", { type: () => ID }) id: number) {
-    return this.departmentsService.removeSubDepartment(id);
+  @UseGuards(DepartmentOwnershipGuard)
+  async removeSubDepartment(@Args("id", { type: () => Int }) id: number) {
+    return this.subDepartmentsService.remove(id);
   }
 }
