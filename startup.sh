@@ -1,6 +1,6 @@
 #!/bin/sh
 echo "Running database migrations..."
-node dist/scripts/run-migrations.js
+npm run migration:run
 if [ $? -eq 0 ]; then
   echo "Starting the application..."
   npm run start:prod

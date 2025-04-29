@@ -1,23 +1,23 @@
-import { config } from "dotenv";
-import { DataSource } from "typeorm";
-import { dataSourceOptions } from "../config/data-source";
+import dataSource from "../config/data-source";
+import { Logger } from "@nestjs/common";
 
-// Load environment variables
-config();
+async function runMigrations() {
+  const logger = new Logger("MigrationRunner");
 
-const dataSource = new DataSource(dataSourceOptions);
+  try {
+    logger.log("Initializing data source...");
+    await dataSource.initialize();
 
-dataSource
-  .initialize()
-  .then(async () => {
-    console.log("Running migrations...");
-    return dataSource.runMigrations();
-  })
-  .then(() => {
-    console.log("Migrations completed successfully");
+    logger.log("Running migrations...");
+    await dataSource.runMigrations();
+
+    logger.log("Migrations completed successfully");
+    await dataSource.destroy();
     process.exit(0);
-  })
-  .catch((error) => {
-    console.error("Error during migration:", error);
+  } catch (error) {
+    logger.error("Error during migration:", error);
     process.exit(1);
-  });
+  }
+}
+
+runMigrations();
