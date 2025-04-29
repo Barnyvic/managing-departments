@@ -4,10 +4,13 @@ import {
   MinLength,
   IsOptional,
   ValidateNested,
+  IsNumber,
+  Min,
+  IsInt,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { SubDepartmentInput } from "./sub-department.input";
-import { Float } from "@nestjs/graphql";
+import { Float, Int } from "@nestjs/graphql";
 
 @InputType()
 export class CreateDepartmentInput {
@@ -33,9 +36,15 @@ export class UpdateDepartmentInput {
 
 @InputType()
 export class PaginationInput {
-  @Field(() => Float, { defaultValue: 1 })
+  @Field(() => Int, { defaultValue: 1 })
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
   page: number;
 
-  @Field(() => Float, { defaultValue: 10 })
+  @Field(() => Int, { defaultValue: 10 })
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
   limit: number;
 }

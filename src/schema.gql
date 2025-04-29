@@ -34,14 +34,22 @@ type Department {
   updatedAt: DateTime!
 }
 
+type PaginatedDepartments {
+  departments: [Department!]!
+  total: Int!
+  page: Int!
+  limit: Int!
+  totalPages: Int!
+}
+
 type Query {
-  getDepartments(pagination: PaginationInput!): [Department!]!
+  getDepartments(pagination: PaginationInput!): PaginatedDepartments!
   getDepartment(id: ID!): Department!
 }
 
 input PaginationInput {
-  page: Float! = 1
-  limit: Float! = 10
+  page: Int! = 1
+  limit: Int! = 10
 }
 
 type Mutation {

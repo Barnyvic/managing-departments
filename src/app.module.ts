@@ -33,6 +33,13 @@ import { join } from "path";
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), "src/schema.gql"),
+      playground: {
+        settings: {
+          "request.credentials": "include",
+        },
+      },
+      introspection: true,
+      path: "/graphql",
     }),
     ThrottlerModule.forRoot([
       {

@@ -7,6 +7,7 @@ import { UpdateDepartmentInput } from "./dto/department.input";
 import { SubDepartmentInput } from "./dto/sub-department.input";
 import { UpdateSubDepartmentInput } from "./dto/sub-department.input";
 import { PaginationInput } from "./dto/department.input";
+import { PaginatedDepartments } from "./dto/pagination.result";
 import { UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
@@ -14,7 +15,7 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 export class DepartmentsResolver {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
-  @Query(() => [Department])
+  @Query(() => PaginatedDepartments)
   @UseGuards(JwtAuthGuard)
   async getDepartments(@Args("pagination") pagination: PaginationInput) {
     return this.departmentsService.findAll(pagination);

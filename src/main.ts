@@ -1,7 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ConfigService } from "@nestjs/config";
-import helmet from "helmet";
 import * as session from "express-session";
 import { ValidationPipe } from "@nestjs/common";
 
@@ -12,29 +11,11 @@ async function bootstrap() {
 
   // Enable CORS with specific options
   app.enableCors({
-    origin: configService.get("cors.origin") || "*",
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    origin: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
     credentials: true,
+    allowedHeaders: "Content-Type, Accept, Authorization",
   });
-
-  // Security middleware
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
-          objectSrc: ["'none'"],
-          mediaSrc: ["'self'"],
-          frameSrc: ["'none'"],
-        },
-      },
-    })
-  );
 
   // Session middleware (needed for some features)
   app.use(
