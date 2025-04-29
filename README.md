@@ -2,6 +2,10 @@
 
 A GraphQL-based API for managing departments, built with NestJS, TypeORM, and PostgreSQL.
 
+## Live Demo
+
+The API is deployed and available at: [https://managing-departments.onrender.com/](https://managing-departments.onrender.com/)
+
 ## Features
 
 - GraphQL API with Apollo Server
@@ -10,6 +14,9 @@ A GraphQL-based API for managing departments, built with NestJS, TypeORM, and Po
 - Rate limiting and security headers
 - Comprehensive error handling
 - Query complexity analysis
+- Department and Sub-department management
+- Pagination support
+- Ownership-based access control
 
 ## Prerequisites
 
@@ -113,57 +120,141 @@ mutation CreateDepartment($input: CreateDepartmentInput!) {
 }
 ```
 
+#### Update Department
+
+```graphql
+mutation UpdateDepartment($id: Int!, $input: UpdateDepartmentInput!) {
+  updateDepartment(id: $id, input: $input) {
+    id
+    name
+    description
+    updatedAt
+  }
+}
+```
+
+#### Delete Department
+
+```graphql
+mutation DeleteDepartment($id: Int!) {
+  removeDepartment(id: $id) {
+    id
+    name
+  }
+}
+```
+
 #### Get Departments
 
 ```graphql
-query GetDepartments {
-  departments {
+query GetDepartments($paginationInput: PaginationInput!) {
+  getDepartments(paginationInput: $paginationInput) {
+    items {
+      id
+      name
+      description
+      createdAt
+    }
+    total
+    page
+    limit
+  }
+}
+```
+
+### Sub-Departments
+
+#### Create Sub-Department
+
+```graphql
+mutation CreateSubDepartment($departmentId: Int!, $input: SubDepartmentInput!) {
+  createSubDepartment(departmentId: $departmentId, input: $input) {
     id
     name
     description
     createdAt
+  }
+}
+```
+
+#### Update Sub-Department
+
+```graphql
+mutation UpdateSubDepartment($id: Int!, $input: UpdateSubDepartmentInput!) {
+  updateSubDepartment(id: $id, input: $input) {
+    id
+    name
+    description
     updatedAt
+  }
+}
+```
+
+#### Delete Sub-Department
+
+```graphql
+mutation DeleteSubDepartment($id: Int!) {
+  removeSubDepartment(id: $id) {
+    id
+    name
+  }
+}
+```
+
+#### Get Sub-Departments
+
+```graphql
+query GetSubDepartments(
+  $paginationInput: PaginationInput!
+  $departmentId: Int
+) {
+  getSubDepartments(
+    paginationInput: $paginationInput
+    departmentId: $departmentId
+  ) {
+    items {
+      id
+      name
+      description
+      createdAt
+    }
+    total
+    page
+    limit
   }
 }
 ```
 
 ## Error Handling
 
-The API uses standardized error responses with the following format:
+The API uses standard HTTP status codes and provides detailed error messages:
 
-```typescript
-{
-  "errors": [
-    {
-      "message": "Error message",
-      "extensions": {
-        "code": "ERROR_CODE",
-        "statusCode": 400,
-        "details": {
-          // Additional error details
-        }
-      }
-    }
-  ]
-}
-```
-
-Common error codes:
-
-- `UNAUTHORIZED`: Authentication required
-- `FORBIDDEN`: Insufficient permissions
-- `NOT_FOUND`: Resource not found
-- `BAD_REQUEST`: Invalid input
-- `INTERNAL_SERVER_ERROR`: Server error
+- 200: Success
+- 400: Bad Request
+- 401: Unauthorized
+- 404: Not Found
+- 409: Conflict
+- 500: Internal Server Error
 
 ## Security Features
 
-- Rate limiting (10 requests per minute)
-- JWT authentication
-- Password hashing with argon2
+- JWT-based authentication
+- Password hashing with Argon2
+- Rate limiting
 - CORS protection
-- Security headers with helmet
-- Query complexity analysis
+- Helmet security headers
+- CSRF protection
+- SSL/TLS support
+
+## Deployment
+
+The API is deployed on Render.com with the following configuration:
+
+- Node.js environment
+- PostgreSQL database
+- Automatic deployments from main branch
+- SSL/TLS enabled
+- Environment variables configured
 
 ## Development
 
@@ -171,47 +262,16 @@ Common error codes:
 
 ```bash
 npm run test
+npm run test:e2e
 ```
 
-### Running Migrations
-
-```bash
-# Create migration
-npm run migration:generate -- -n MigrationName
-
-# Run migrations
-npm run migration:run
-
-# Revert last migration
-npm run migration:revert
-```
-
-### Code Quality
-
-```bash
-# Lint code
-npm run lint
-
-# Format code
-npm run format
-```
-
-## Production Deployment
-
-1. Set `NODE_ENV=production` in your environment variables
-2. Run migrations:
-
-```bash
-npm run migration:run
-```
-
-3. Build the application:
+### Building for Production
 
 ```bash
 npm run build
 ```
 
-4. Start the production server:
+### Running in Production
 
 ```bash
 npm run start:prod
@@ -220,11 +280,11 @@ npm run start:prod
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the ISC License.
