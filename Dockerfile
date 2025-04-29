@@ -19,10 +19,12 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install production dependencies and ts-node
+# Set environment variables
+ENV NODE_ENV=production
+
+# Install production dependencies
 COPY --from=builder /app/package*.json ./
-RUN npm install --production --legacy-peer-deps && \
-    npm install -g ts-node typescript --legacy-peer-deps
+RUN npm install --production --legacy-peer-deps
 
 # Copy necessary files
 COPY --from=builder /app/node_modules ./node_modules
