@@ -18,6 +18,8 @@ for (const key of required) {
   }
 }
 
+const isProd = process.env.NODE_ENV === "production";
+
 export const dataSourceOptions: DataSourceOptions = {
   type: "postgres",
   host: process.env.DB_HOST,
@@ -27,14 +29,21 @@ export const dataSourceOptions: DataSourceOptions = {
   database: process.env.DB_DATABASE,
   entities: ["dist/**/*.entity{.ts,.js}"],
   migrations: ["dist/migrations/*{.ts,.js}"],
-  synchronize: process.env.NODE_ENV !== "production",
+  synchronize: !isProd,
   ssl:
-    process.env.DB_SSL === "true"
+    isProd || process.env.DB_SSL === "true"
       ? {
           rejectUnauthorized: false,
         }
       : false,
-  logging: process.env.NODE_ENV !== "production",
+  logging: !isProd,
+  extra: isProd
+    ? {
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      }
+    : undefined,
 };
 
 const dataSource = new DataSource(dataSourceOptions);

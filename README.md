@@ -87,7 +87,7 @@ npm run start:dev
 
 ## API Documentation
 
-### Authentication
+### Authentication Operations
 
 1. Register a new user:
 
@@ -97,11 +97,12 @@ mutation Register {
     id
     username
     createdAt
+    updatedAt
   }
 }
 ```
 
-2. Login to get a JWT token:
+2. Login to get JWT token:
 
 ```graphql
 mutation Login {
@@ -113,12 +114,12 @@ mutation Login {
 
 ### Department Operations
 
-1. Create a department with subdepartments:
+1. Create Department with Sub-departments:
 
 ```graphql
 mutation CreateDepartment {
   createDepartment(
-    input: {
+    createDepartmentInput: {
       name: "Engineering"
       subDepartments: [
         { name: "Frontend" }
@@ -133,16 +134,19 @@ mutation CreateDepartment {
       id
       name
     }
+    createdBy {
+      username
+    }
     createdAt
   }
 }
 ```
 
-2. Get departments (paginated):
+2. Get All Departments (Paginated):
 
 ```graphql
 query GetDepartments {
-  getDepartments(pagination: { page: 1, limit: 10 }) {
+  getDepartments(paginationInput: { page: 1, limit: 10 }) {
     departments {
       id
       name
@@ -161,15 +165,61 @@ query GetDepartments {
 }
 ```
 
-### Subdepartment Operations
+3. Get Single Department:
 
-1. Create a subdepartment:
+```graphql
+query GetDepartment {
+  getDepartment(id: 1) {
+    id
+    name
+    subDepartments {
+      id
+      name
+    }
+    createdBy {
+      username
+    }
+    createdAt
+    updatedAt
+  }
+}
+```
+
+4. Update Department:
+
+```graphql
+mutation UpdateDepartment {
+  updateDepartment(
+    id: 1
+    updateDepartmentInput: { name: "Engineering & Technology" }
+  ) {
+    id
+    name
+    updatedAt
+  }
+}
+```
+
+5. Remove Department:
+
+```graphql
+mutation RemoveDepartment {
+  removeDepartment(id: 1) {
+    id
+    name
+  }
+}
+```
+
+### Sub-department Operations
+
+1. Create Sub-department:
 
 ```graphql
 mutation CreateSubDepartment {
   createSubDepartment(
-    departmentId: "1"
-    input: { name: "Mobile Development" }
+    departmentId: 1
+    createSubDepartmentInput: { name: "Mobile Development" }
   ) {
     id
     name
@@ -177,26 +227,91 @@ mutation CreateSubDepartment {
       id
       name
     }
+    createdAt
   }
 }
 ```
 
-2. Get subdepartments (paginated):
+2. Get Sub-departments (Paginated):
 
 ```graphql
 query GetSubDepartments {
-  getSubDepartments(pagination: { page: 1, limit: 10 }, departmentId: "1") {
+  getSubDepartments(paginationInput: { page: 1, limit: 10 }, departmentId: 1) {
     subDepartments {
       id
       name
       department {
         name
       }
+      createdAt
+      updatedAt
     }
     total
     totalPages
     currentPage
   }
+}
+```
+
+3. Update Sub-department:
+
+```graphql
+mutation UpdateSubDepartment {
+  updateSubDepartment(
+    id: 1
+    updateSubDepartmentInput: { name: "Mobile & Web Development" }
+  ) {
+    id
+    name
+    updatedAt
+  }
+}
+```
+
+4. Remove Sub-department:
+
+```graphql
+mutation RemoveSubDepartment {
+  removeSubDepartment(id: 1) {
+    id
+    name
+  }
+}
+```
+
+### Common Input Types
+
+1. Pagination Input:
+
+```graphql
+input PaginationInput {
+  page: Int! = 1 # Default: 1
+  limit: Int! = 10 # Default: 10
+}
+```
+
+2. Department Inputs:
+
+```graphql
+input CreateDepartmentInput {
+  name: String!
+  subDepartments: [SubDepartmentInput!]
+}
+
+input UpdateDepartmentInput {
+  name: String!
+}
+```
+
+3. Sub-department Inputs:
+
+```graphql
+input SubDepartmentInput {
+  name: String!
+}
+
+input UpdateSubDepartmentInput {
+  name: String!
 }
 ```
 
