@@ -8,7 +8,7 @@ import { GraphQLErrorFilter } from "./common/filters/graphql-exception.filter";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  const port = configService.get("port");
+  const port = configService.get("PORT");
   const isProduction = process.env.NODE_ENV === "production";
 
   // Enable CORS with specific options
