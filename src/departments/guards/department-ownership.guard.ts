@@ -1,12 +1,8 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from "@nestjs/common";
+import { Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
 import { GqlExecutionContext } from "@nestjs/graphql";
 import { DepartmentsService } from "../departments.service";
 import { SubDepartmentsService } from "../services/sub-departments.service";
+import { UnauthorizedDepartmentAccessException } from "../../common/exceptions/department.exceptions";
 
 @Injectable()
 export class DepartmentOwnershipGuard implements CanActivate {
@@ -21,7 +17,7 @@ export class DepartmentOwnershipGuard implements CanActivate {
     const args = ctx.getArgs();
 
     if (!req.user) {
-      throw new ForbiddenException(
+      throw new UnauthorizedDepartmentAccessException(
         "You must be authenticated to perform this action"
       );
     }
@@ -34,18 +30,18 @@ export class DepartmentOwnershipGuard implements CanActivate {
       !operation.includes("SubDepartment")
     ) {
       if (operation.startsWith("create")) {
-        return true; 
+        return true;
       }
 
       const departmentId = args.id;
       const department = await this.departmentsService.findOne(departmentId);
 
       if (!department) {
-        throw new ForbiddenException("Department not found");
+        throw new UnauthorizedDepartmentAccessException("Department not found");
       }
 
       if (department.createdBy.id !== userId) {
-        throw new ForbiddenException(
+        throw new UnauthorizedDepartmentAccessException(
           "You do not have permission to modify this department"
         );
       }
@@ -60,7 +56,7 @@ export class DepartmentOwnershipGuard implements CanActivate {
         const department = await this.departmentsService.findOne(departmentId);
 
         if (!department || department.createdBy.id !== userId) {
-          throw new ForbiddenException(
+          throw new UnauthorizedDepartmentAccessException(
             "You do not have permission to add sub-departments to this department"
           );
         }
@@ -73,11 +69,13 @@ export class DepartmentOwnershipGuard implements CanActivate {
         await this.subDepartmentsService.findOne(subDepartmentId);
 
       if (!subDepartment) {
-        throw new ForbiddenException("Sub-department not found");
+        throw new UnauthorizedDepartmentAccessException(
+          "Sub-department not found"
+        );
       }
 
       if (subDepartment.department.createdBy.id !== userId) {
-        throw new ForbiddenException(
+        throw new UnauthorizedDepartmentAccessException(
           "You do not have permission to modify this sub-department"
         );
       }

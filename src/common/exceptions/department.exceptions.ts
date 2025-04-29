@@ -2,6 +2,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  UnauthorizedException,
 } from "@nestjs/common";
 
 export class DepartmentNotFoundException extends NotFoundException {
@@ -40,6 +41,16 @@ export class InvalidDepartmentDataException extends BadRequestException {
       message,
       error: "BAD_REQUEST",
       statusCode: 400,
+    });
+  }
+}
+
+export class UnauthorizedDepartmentAccessException extends UnauthorizedException {
+  constructor(message: string) {
+    super({
+      message,
+      error: "UNAUTHORIZED",
+      statusCode: 401,
     });
   }
 }
