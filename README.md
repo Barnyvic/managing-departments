@@ -4,60 +4,88 @@ A robust API built with NestJS, GraphQL, TypeORM, and PostgreSQL for managing de
 
 ## Features
 
-- JWT Authentication
+- JWT Authentication with Role-based Access
 - GraphQL API with Pagination
 - Department and Sub-department Management
-- Input Validation
-- Error Handling
+- Rate Limiting & CORS Protection
+- Input Validation & Error Handling
+- Docker Support
 - TypeScript Support
 - User-based Access Control
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - PostgreSQL
-- npm
+- npm or Docker
 
 ## Installation
+
+### Using Docker (Recommended)
 
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Barnyvic/managing-departments.git
 cd managing-departments
 ```
 
-2. Install dependencies:
+2. Start the application with Docker Compose:
 
 ```bash
+docker-compose up --build
+```
+
+The API will be available at `http://localhost:3000/graphql`
+
+### Manual Setup
+
+1. Clone and install dependencies:
+
+```bash
+git clone https://github.com/Barnyvic/managing-departments.git
+cd managing-departments
 npm install
 ```
 
-3. Create a `.env` file in the root directory:
+2. Create a `.env` file in the root directory:
 
 ```env
+NODE_ENV=development
+PORT=3000
+
+# Database
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
 DB_DATABASE=department_management
+
+# JWT
 JWT_SECRET=your-super-secret-key
-JWT_EXPIRES_IN=1h
+JWT_EXPIRES_IN=1d
+
+# Rate Limiting
+THROTTLE_TTL=60
+THROTTLE_LIMIT=10
+
+# CORS
+CORS_ORIGIN=*
 ```
 
-4. Run database migrations:
+3. Run database migrations:
 
 ```bash
 npm run migration:run
 ```
 
-5. Start the development server:
+4. Start the development server:
 
 ```bash
 npm run start:dev
 ```
 
-## API Usage
+## API Documentation
 
 ### Authentication
 
@@ -83,7 +111,7 @@ mutation Login {
 }
 ```
 
-### Department Management
+### Department Operations
 
 1. Create a department with subdepartments:
 
@@ -110,7 +138,7 @@ mutation CreateDepartment {
 }
 ```
 
-2. Get all departments (paginated):
+2. Get departments (paginated):
 
 ```graphql
 query GetDepartments {
@@ -128,77 +156,12 @@ query GetDepartments {
     }
     total
     totalPages
-    page
-    limit
+    currentPage
   }
 }
 ```
 
-3. Get all subdepartments (paginated):
-
-```graphql
-query GetSubDepartments {
-  getSubDepartments(
-    pagination: { page: 1, limit: 10 }
-    departmentId: "1" # Optional: Filter by department
-  ) {
-    subDepartments {
-      id
-      name
-      department {
-        id
-        name
-      }
-      createdAt
-    }
-    total
-    totalPages
-  }
-}
-```
-
-4. Get a single department:
-
-```graphql
-query GetDepartment {
-  getDepartment(id: "1") {
-    id
-    name
-    subDepartments {
-      id
-      name
-    }
-    createdBy {
-      username
-    }
-  }
-}
-```
-
-5. Update a department:
-
-```graphql
-mutation UpdateDepartment {
-  updateDepartment(id: "1", input: { name: "Engineering & Technology" }) {
-    id
-    name
-    updatedAt
-  }
-}
-```
-
-6. Delete a department:
-
-```graphql
-mutation DeleteDepartment {
-  deleteDepartment(id: "1") {
-    id
-    name
-  }
-}
-```
-
-### Subdepartment Management
+### Subdepartment Operations
 
 1. Create a subdepartment:
 
@@ -218,40 +181,82 @@ mutation CreateSubDepartment {
 }
 ```
 
-2. Update a subdepartment:
+2. Get subdepartments (paginated):
 
 ```graphql
-mutation UpdateSubDepartment {
-  updateSubDepartment(id: "1", input: { name: "Mobile & Web Development" }) {
-    id
-    name
-    updatedAt
+query GetSubDepartments {
+  getSubDepartments(pagination: { page: 1, limit: 10 }, departmentId: "1") {
+    subDepartments {
+      id
+      name
+      department {
+        name
+      }
+    }
+    total
+    totalPages
+    currentPage
   }
 }
 ```
 
-3. Delete a subdepartment:
+## Development
 
-```graphql
-mutation DeleteSubDepartment {
-  deleteSubDepartment(id: "1") {
-    id
-    name
-  }
-}
+- Generate migration: `npm run migration:generate -- src/migrations/MigrationName`
+- Run migrations: `npm run migration:run`
+- Format code: `npm run format`
+- Lint code: `npm run lint`
+- Run tests: `npm run test`
+
+## Docker Commands
+
+- Build and start services: `docker-compose up --build`
+- Start services in background: `docker-compose up -d`
+- Stop services: `docker-compose down`
+- View logs: `docker-compose logs -f`
+- Access PostgreSQL: `docker-compose exec db psql -U postgres -d department_management`
+
+## Production Deployment
+
+1. Build the application:
+
+```bash
+npm run build
 ```
+
+2. Start in production mode:
+
+```bash
+npm run start:prod
+```
+
+### Using Docker in Production
+
+1. Build the production image:
+
+```bash
+docker build -t department-management-api .
+```
+
+2. Run with production environment:
+
+```bash
+docker run -p 3000:3000 --env-file .env.production department-management-api
+```
+
+## Security Features
+
+- JWT-based authentication
+- Rate limiting protection
+- CORS configuration
+- Password hashing
+- Input validation
+- SQL injection protection
+- User-based access control
 
 ## Error Handling
 
-The API provides detailed error messages for various scenarios:
-
-- Authentication errors
-- Not found errors
-- Permission errors
-- Validation errors
-- Duplicate name errors
-
-Example error response:
+The API provides detailed error messages with appropriate HTTP status codes:
 
 ```json
 {
@@ -271,37 +276,18 @@ Example error response:
 }
 ```
 
-## Development
+## Contributing
 
-- Generate migration: `npm run migration:generate -- src/migrations/MigrationName`
-- Run migrations: `npm run migration:run`
-- Revert migration: `npm run migration:revert`
-- Format code: `npm run format`
-- Lint code: `npm run lint`
-- Run tests: `npm run test`
-
-## Production
-
-1. Build the application:
-
-```bash
-npm run build
-```
-
-2. Start in production mode:
-
-```bash
-npm run start:prod
-```
-
-## Security Notes
-
-1. Always use environment variables for sensitive data
-2. JWT tokens are required for all operations except login/register
-3. Users can only manage their own departments and subdepartments
-4. Password validation requires minimum 6 characters
-5. All database queries are protected against SQL injection
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes: `git commit -am 'Add my feature'`
+4. Push to the branch: `git push origin feature/my-feature`
+5. Submit a pull request
 
 ## License
 
 ISC
+
+## Author
+
+[Barnyvic](https://github.com/Barnyvic)

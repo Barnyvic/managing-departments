@@ -7,6 +7,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 3000
       - key: DB_HOST
         fromDatabase:
           name: department-management-db
@@ -31,9 +33,16 @@ services:
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 1d
+      - key: THROTTLE_TTL
+        value: 60
+      - key: THROTTLE_LIMIT
+        value: 10
+      - key: CORS_ORIGIN
+        value: "*"
 
 databases:
   - name: department-management-db
     databaseName: department_management
     user: postgres
     plan: free
+    ipAllowList: [] 
