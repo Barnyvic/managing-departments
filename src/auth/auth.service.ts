@@ -21,10 +21,10 @@ export class AuthService {
     private readonly jwtService: JwtService
   ) {}
 
-  async validateUser(username: string, password: string): Promise<User | null> {
+  async validateUser(username: string, password: string): Promise<User> {
     this.logger.log(`Validating user: ${username}`);
     const user = await this.usersRepository.findOne({ where: { username } });
-    
+
     if (!user) {
       throw new UserNotFoundException(username);
     }
@@ -72,11 +72,16 @@ export class AuthService {
       this.logger.log(`Successfully registered user: ${username}`);
       return savedUser;
     } catch (error) {
-      if (error instanceof UsernameAlreadyExistsException || 
-          error instanceof InvalidPasswordException) {
+      if (
+        error instanceof UsernameAlreadyExistsException ||
+        error instanceof InvalidPasswordException
+      ) {
         throw error;
       }
-      this.logger.error(`Error registering user: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error registering user: ${error.message}`,
+        error.stack
+      );
       throw error;
     }
   }

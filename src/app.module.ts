@@ -12,6 +12,8 @@ import { LoggingPlugin } from "./plugins/logging.plugin";
 import { join } from "path";
 import { dataSourceOptions } from "./config/data-source";
 import { GraphQLError, GraphQLFormattedError } from "graphql";
+import { APP_FILTER } from "@nestjs/core";
+import { GraphQLExceptionFilter } from "./common/filters/graphql-exception.filter";
 
 @Module({
   imports: [
@@ -31,23 +33,21 @@ import { GraphQLError, GraphQLFormattedError } from "graphql";
       introspection: true,
       path: "/graphql",
       formatError: (error: GraphQLError): GraphQLFormattedError => {
-        const isProduction = process.env.NODE_ENV === "production";
-        if (isProduction) {
-          const extensions = { ...error.extensions };
-          if (extensions.exception) {
-            const exception = extensions.exception as Record<string, unknown>;
-            delete exception.stacktrace;
-          }
-          if (extensions.code !== "NOT_FOUND") {
-            return {
-              message: "Internal server error",
-              extensions,
-              locations: error.locations,
-              path: error.path,
-            };
-          }
+        // If the error already has extensions, return it as is
+        if (error.extensions) {
+          return error;
         }
-        return error;
+
+        // For any other error, return a clean error format
+        return {
+          message: error.message,
+          extensions: {
+            code: "INTERNAL_SERVER_ERROR",
+            statusCode: 500,
+          },
+          locations: error.locations,
+          path: error.path,
+        };
       },
     }),
     ThrottlerModule.forRoot([
@@ -59,7 +59,13 @@ import { GraphQLError, GraphQLFormattedError } from "graphql";
     AuthModule,
     DepartmentsModule,
   ],
-  providers: [LoggingPlugin],
+  providers: [
+    LoggingPlugin,
+    {
+      provide: APP_FILTER,
+      useClass: GraphQLExceptionFilter,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

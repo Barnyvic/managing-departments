@@ -27,8 +27,9 @@ async function bootstrap() {
     })
   );
 
-  app.useGlobalPipes(new ValidationPipe());
   app.useGlobalInterceptors(new GraphQLErrorInterceptor());
+  app.useGlobalPipes(new ValidationPipe());
+
 
   app.use(
     helmet({
