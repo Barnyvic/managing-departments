@@ -6,9 +6,11 @@ type AuthResponse {
   access_token: String!
 }
 
-input CreateDepartmentInput {
-  name: String!
-  subDepartments: [SubDepartmentInput!]
+type RegisterResponse {
+  id: Float!
+  username: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 """
@@ -16,58 +18,56 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
-type Department {
+type SubDepartment {
+  id: ID!
+  name: String!
+  department: Department!
   createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Department {
   id: ID!
   name: String!
   subDepartments: [SubDepartment!]
+  createdAt: DateTime!
   updatedAt: DateTime!
-}
-
-input LoginInput {
-  password: String!
-  username: String!
-}
-
-type Mutation {
-  createDepartment(input: CreateDepartmentInput!): Department!
-  createSubDepartment(departmentId: ID!, input: SubDepartmentInput!): SubDepartment!
-  deleteDepartment(id: ID!): Department!
-  deleteSubDepartment(id: ID!): SubDepartment!
-  login(input: LoginInput!): AuthResponse!
-  register(input: RegisterInput!): RegisterResponse!
-  updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
-  updateSubDepartment(id: ID!, input: UpdateSubDepartmentInput!): SubDepartment!
-}
-
-input PaginationInput {
-  limit: Float! = 10
-  page: Float! = 1
 }
 
 type Query {
-  getDepartment(id: ID!): Department!
   getDepartments(pagination: PaginationInput!): [Department!]!
+  getDepartment(id: ID!): Department!
+}
+
+input PaginationInput {
+  page: Float! = 1
+  limit: Float! = 10
+}
+
+type Mutation {
+  login(input: LoginInput!): AuthResponse!
+  register(input: RegisterInput!): RegisterResponse!
+  createDepartment(input: CreateDepartmentInput!): Department!
+  updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
+  deleteDepartment(id: ID!): Department!
+  createSubDepartment(departmentId: ID!, input: SubDepartmentInput!): SubDepartment!
+  updateSubDepartment(id: ID!, input: UpdateSubDepartmentInput!): SubDepartment!
+  deleteSubDepartment(id: ID!): SubDepartment!
+}
+
+input LoginInput {
+  username: String!
+  password: String!
 }
 
 input RegisterInput {
+  username: String!
   password: String!
-  username: String!
 }
 
-type RegisterResponse {
-  createdAt: DateTime!
-  id: Float!
-  updatedAt: DateTime!
-  username: String!
-}
-
-type SubDepartment {
-  createdAt: DateTime!
-  department: Department!
-  id: ID!
+input CreateDepartmentInput {
   name: String!
-  updatedAt: DateTime!
+  subDepartments: [SubDepartmentInput!]
 }
 
 input SubDepartmentInput {
