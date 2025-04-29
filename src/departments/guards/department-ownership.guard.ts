@@ -6,67 +6,85 @@ import {
 } from "@nestjs/common";
 import { GqlExecutionContext } from "@nestjs/graphql";
 import { DepartmentsService } from "../departments.service";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { SubDepartment } from "../entities/sub-department.entity";
+import { SubDepartmentsService } from "../services/sub-departments.service";
 
 @Injectable()
 export class DepartmentOwnershipGuard implements CanActivate {
   constructor(
-    private departmentsService: DepartmentsService,
-    @InjectRepository(SubDepartment)
-    private subDepartmentsRepository: Repository<SubDepartment>
+    private readonly departmentsService: DepartmentsService,
+    private readonly subDepartmentsService: SubDepartmentsService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const ctx = GqlExecutionContext.create(context);
     const { req } = ctx.getContext();
     const args = ctx.getArgs();
-    const operation =
-      ctx.getInfo().operation.selectionSet.selections[0].name.value;
 
-    let departmentId: number;
-
-    // Handle different operations
-    if (operation.includes("SubDepartment")) {
-      if (
-        operation === "updateSubDepartment" ||
-        operation === "deleteSubDepartment"
-      ) {
-        const subDepartment = await this.subDepartmentsRepository.findOne({
-          where: { id: args.id },
-          relations: ["department", "department.createdBy"],
-        });
-
-        if (!subDepartment) {
-          return false;
-        }
-
-        departmentId = subDepartment.department.id;
-        if (subDepartment.department.createdBy.id !== req.user.id) {
-          throw new ForbiddenException(
-            "You do not have permission to modify this subdepartment"
-          );
-        }
-        return true;
-      } else if (operation === "createSubDepartment") {
-        departmentId = args.departmentId;
-      }
-    } else {
-      departmentId = args.id;
-    }
-
-    if (!departmentId) return true;
-
-    const department = await this.departmentsService.findOne(departmentId);
-    if (!department) return false;
-
-    if (department.createdBy.id !== req.user.id) {
+    if (!req.user) {
       throw new ForbiddenException(
-        "You do not have permission to modify this department"
+        "You must be authenticated to perform this action"
       );
     }
 
-    return true;
+    const userId = req.user.id;
+    const operation = ctx.getInfo().operation.name.value;
+
+    if (
+      operation.includes("Department") &&
+      !operation.includes("SubDepartment")
+    ) {
+      if (operation.startsWith("create")) {
+        return true; 
+      }
+
+      const departmentId = args.id;
+      const department = await this.departmentsService.findOne(departmentId);
+
+      if (!department) {
+        throw new ForbiddenException("Department not found");
+      }
+
+      if (department.createdBy.id !== userId) {
+        throw new ForbiddenException(
+          "You do not have permission to modify this department"
+        );
+      }
+
+      return true;
+    }
+
+    // For sub-department operations
+    if (operation.includes("SubDepartment")) {
+      if (operation.startsWith("create")) {
+        const departmentId = args.departmentId;
+        const department = await this.departmentsService.findOne(departmentId);
+
+        if (!department || department.createdBy.id !== userId) {
+          throw new ForbiddenException(
+            "You do not have permission to add sub-departments to this department"
+          );
+        }
+
+        return true;
+      }
+
+      const subDepartmentId = args.id;
+      const subDepartment =
+        await this.subDepartmentsService.findOne(subDepartmentId);
+
+      if (!subDepartment) {
+        throw new ForbiddenException("Sub-department not found");
+      }
+
+      if (subDepartment.department.createdBy.id !== userId) {
+        throw new ForbiddenException(
+          "You do not have permission to modify this sub-department"
+        );
+      }
+
+      return true;
+    }
+
+    return false;
   }
 }

@@ -27,13 +27,9 @@ export class DepartmentsService {
   /**
    * Retrieves all departments with pagination
    * @param pagination - Pagination parameters (page and limit)
-   * @param currentUser - The authenticated user requesting the departments
    * @returns Paginated list of departments with their sub-departments
    */
-  async findAll(
-    pagination: { page: number; limit: number },
-    currentUser: User
-  ) {
+  async findAll(pagination: { page: number; limit: number }) {
     this.logger.log(
       `Fetching departments with pagination: ${JSON.stringify(pagination)}`
     );
@@ -43,8 +39,7 @@ export class DepartmentsService {
 
       const [departments, total] =
         await this.departmentsRepository.findAndCount({
-          where: { createdBy: { id: currentUser.id } },
-          relations: ["subDepartments"],
+          relations: ["subDepartments", "createdBy"],
           skip,
           take: limit,
           order: { createdAt: "DESC" },
@@ -102,7 +97,6 @@ export class DepartmentsService {
       `Creating new department: ${JSON.stringify(createDepartmentInput)}`
     );
     try {
-      // Check if department with same name exists for this user
       const existingDepartment = await this.departmentsRepository.findOne({
         where: {
           name: createDepartmentInput.name,
@@ -125,11 +119,11 @@ export class DepartmentsService {
         for (const subDeptInput of createDepartmentInput.subDepartments) {
           await this.subDepartmentsService.create(
             savedDepartment.id,
-            subDeptInput
+            subDeptInput,
+            currentUser.id
           );
         }
 
-        // Refresh department to include created sub-departments
         return this.findOne(savedDepartment.id);
       }
 
@@ -163,7 +157,6 @@ export class DepartmentsService {
     try {
       const department = await this.findOne(id);
 
-      // Check if new name conflicts with existing department
       if (updateDepartmentInput.name !== department.name) {
         const existingDepartment = await this.departmentsRepository.findOne({
           where: { name: updateDepartmentInput.name },
@@ -199,7 +192,6 @@ export class DepartmentsService {
     this.logger.log(`Removing department ${id}`);
     const department = await this.findOne(id);
 
-    // Store department data before removal
     const departmentToReturn = { ...department };
     await this.departmentsRepository.remove(department);
     return departmentToReturn;

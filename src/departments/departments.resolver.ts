@@ -23,7 +23,6 @@ import {
 } from "./entities/paginated-response.entity";
 import { Field, ObjectType } from "@nestjs/graphql";
 
-
 @Resolver(() => Department)
 @UseGuards(JwtAuthGuard)
 export class DepartmentsResolver {
@@ -34,28 +33,21 @@ export class DepartmentsResolver {
 
   @Query(() => PaginatedDepartments)
   async getDepartments(
-    @Args("paginationInput") paginationInput: PaginationInput,
-    @CurrentUser() user: User
+    @Args("paginationInput") paginationInput: PaginationInput
   ) {
-    return this.departmentsService.findAll(paginationInput, user);
+    return this.departmentsService.findAll(paginationInput);
   }
 
   @Query(() => PaginatedSubDepartments)
   async getSubDepartments(
     @Args("paginationInput") paginationInput: PaginationInput,
     @Args("departmentId", { type: () => Int, nullable: true })
-    departmentId: number,
-    @CurrentUser() user: User
+    departmentId: number
   ) {
-    return this.subDepartmentsService.findAll(
-      paginationInput,
-      user,
-      departmentId
-    );
+    return this.subDepartmentsService.findAll(paginationInput, departmentId);
   }
 
   @Query(() => Department)
-  @UseGuards(DepartmentOwnershipGuard)
   async getDepartment(@Args("id", { type: () => Int }) id: number) {
     return this.departmentsService.findOne(id);
   }
@@ -88,11 +80,13 @@ export class DepartmentsResolver {
   async createSubDepartment(
     @Args("departmentId", { type: () => Int }) departmentId: number,
     @Args("createSubDepartmentInput")
-    createSubDepartmentInput: SubDepartmentInput
+    createSubDepartmentInput: SubDepartmentInput,
+    @CurrentUser() user: User
   ) {
     return this.subDepartmentsService.create(
       departmentId,
-      createSubDepartmentInput
+      createSubDepartmentInput,
+      user.id
     );
   }
 
@@ -101,14 +95,22 @@ export class DepartmentsResolver {
   async updateSubDepartment(
     @Args("id", { type: () => Int }) id: number,
     @Args("updateSubDepartmentInput")
-    updateSubDepartmentInput: UpdateSubDepartmentInput
+    updateSubDepartmentInput: UpdateSubDepartmentInput,
+    @CurrentUser() user: User
   ) {
-    return this.subDepartmentsService.update(id, updateSubDepartmentInput);
+    return this.subDepartmentsService.update(
+      id,
+      updateSubDepartmentInput,
+      user.id
+    );
   }
 
   @Mutation(() => SubDepartment)
   @UseGuards(DepartmentOwnershipGuard)
-  async removeSubDepartment(@Args("id", { type: () => Int }) id: number) {
-    return this.subDepartmentsService.remove(id);
+  async removeSubDepartment(
+    @Args("id", { type: () => Int }) id: number,
+    @CurrentUser() user: User
+  ) {
+    return this.subDepartmentsService.remove(id, user.id);
   }
 }

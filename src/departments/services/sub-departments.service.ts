@@ -23,28 +23,69 @@ export class SubDepartmentsService {
   ) {}
 
   /**
-   * Creates a new sub-department within a department
-   * @param departmentId - ID of the parent department
-   * @param subDepartmentInput - Sub-department creation data
-   * @throws {DepartmentNotFoundException} If parent department not found
-   * @throws {DepartmentNameConflictException} If sub-department name already exists in department
-   * @returns The created sub-department
+   * Validates that a department exists
+   * @param departmentId - ID of the department to validate
+   * @throws {DepartmentNotFoundException} If department not found
    */
-  async create(departmentId: number, subDepartmentInput: SubDepartmentInput) {
-    this.logger.log(
-      `Creating sub-department in department ${departmentId}: ${JSON.stringify(subDepartmentInput)}`
-    );
-
+  private async validateDepartment(departmentId: number): Promise<Department> {
     const department = await this.departmentsRepository.findOne({
       where: { id: departmentId },
-      relations: ["subDepartments"],
     });
 
     if (!department) {
       throw new DepartmentNotFoundException(departmentId);
     }
 
-    // Check if subdepartment with same name exists in the department
+    return department;
+  }
+
+  /**
+   * Validates that a department exists and belongs to the user
+   * @param departmentId - ID of the department to validate
+   * @param userId - User ID to check ownership
+   * @throws {DepartmentNotFoundException} If department not found or doesn't belong to user
+   */
+  private async validateDepartmentOwnership(
+    departmentId: number,
+    userId: number
+  ): Promise<Department> {
+    const department = await this.departmentsRepository.findOne({
+      where: {
+        id: departmentId,
+        createdBy: { id: userId },
+      },
+    });
+
+    if (!department) {
+      throw new DepartmentNotFoundException(departmentId);
+    }
+
+    return department;
+  }
+
+  /**
+   * Creates a new sub-department within a department
+   * @param departmentId - ID of the parent department
+   * @param subDepartmentInput - Sub-department creation data
+   * @param userId - ID of the user creating the sub-department
+   * @throws {DepartmentNotFoundException} If parent department not found or doesn't belong to user
+   * @throws {DepartmentNameConflictException} If sub-department name already exists in department
+   * @returns The created sub-department
+   */
+  async create(
+    departmentId: number,
+    subDepartmentInput: SubDepartmentInput,
+    userId: number
+  ) {
+    this.logger.log(
+      `Creating sub-department in department ${departmentId}: ${JSON.stringify(subDepartmentInput)}`
+    );
+
+    const department = await this.validateDepartmentOwnership(
+      departmentId,
+      userId
+    );
+
     const existingSubDepartment = await this.subDepartmentsRepository.findOne({
       where: {
         name: subDepartmentInput.name,
@@ -68,11 +109,13 @@ export class SubDepartmentsService {
    * Updates a sub-department
    * @param id - ID of the sub-department to update
    * @param updateData - Updated sub-department data
+   * @param userId - ID of the user updating the sub-department
    * @throws {SubDepartmentNotFoundException} If sub-department not found
+   * @throws {DepartmentNotFoundException} If parent department not found or doesn't belong to user
    * @throws {DepartmentNameConflictException} If new name conflicts with existing sub-department
    * @returns The updated sub-department
    */
-  async update(id: number, updateData: { name: string }) {
+  async update(id: number, updateData: { name: string }, userId: number) {
     this.logger.log(
       `Updating sub-department ${id}: ${JSON.stringify(updateData)}`
     );
@@ -86,7 +129,8 @@ export class SubDepartmentsService {
       throw new SubDepartmentNotFoundException(id);
     }
 
-    // Check for name conflicts within the same department
+    await this.validateDepartmentOwnership(subDepartment.department.id, userId);
+
     if (updateData.name !== subDepartment.name) {
       const existingSubDepartment = await this.subDepartmentsRepository.findOne(
         {
@@ -109,18 +153,21 @@ export class SubDepartmentsService {
   /**
    * Retrieves all sub-departments with pagination
    * @param pagination - Pagination parameters
-   * @param currentUser - Current authenticated user
    * @param departmentId - Optional department ID to filter by
+   * @throws {DepartmentNotFoundException} If specified department not found
    * @returns Paginated sub-departments
    */
   async findAll(
     pagination: { page: number; limit: number },
-    currentUser: User,
     departmentId?: number
   ) {
     this.logger.log(
       `Fetching sub-departments with pagination: ${JSON.stringify(pagination)}`
     );
+
+    if (departmentId) {
+      await this.validateDepartment(departmentId);
+    }
 
     const { page, limit } = pagination;
     const skip = (page - 1) * limit;
@@ -128,11 +175,10 @@ export class SubDepartmentsService {
     const queryBuilder = this.subDepartmentsRepository
       .createQueryBuilder("subDepartment")
       .innerJoinAndSelect("subDepartment.department", "department")
-      .innerJoin("department.createdBy", "user")
-      .where("user.id = :userId", { userId: currentUser.id });
+      .leftJoinAndSelect("department.createdBy", "user");
 
     if (departmentId) {
-      queryBuilder.andWhere("department.id = :departmentId", { departmentId });
+      queryBuilder.where("department.id = :departmentId", { departmentId });
     }
 
     const [subDepartments, total] = await queryBuilder
@@ -152,10 +198,12 @@ export class SubDepartmentsService {
   /**
    * Removes a sub-department
    * @param id - ID of the sub-department to remove
+   * @param userId - ID of the user removing the sub-department
    * @throws {SubDepartmentNotFoundException} If sub-department not found
+   * @throws {DepartmentNotFoundException} If parent department not found or doesn't belong to user
    * @returns The removed sub-department
    */
-  async remove(id: number) {
+  async remove(id: number, userId: number) {
     this.logger.log(`Removing sub-department ${id}`);
 
     const subDepartment = await this.subDepartmentsRepository.findOne({
@@ -167,8 +215,31 @@ export class SubDepartmentsService {
       throw new SubDepartmentNotFoundException(id);
     }
 
+    await this.validateDepartmentOwnership(subDepartment.department.id, userId);
+
     const subDepartmentToReturn = { ...subDepartment };
     await this.subDepartmentsRepository.remove(subDepartment);
     return subDepartmentToReturn;
+  }
+
+  /**
+   * Retrieves a single sub-department by ID
+   * @param id - ID of the sub-department to retrieve
+   * @throws {SubDepartmentNotFoundException} If sub-department not found
+   * @returns The sub-department with its relations
+   */
+  async findOne(id: number) {
+    this.logger.log(`Fetching sub-department ${id}`);
+
+    const subDepartment = await this.subDepartmentsRepository.findOne({
+      where: { id },
+      relations: ["department", "department.createdBy"],
+    });
+
+    if (!subDepartment) {
+      throw new SubDepartmentNotFoundException(id);
+    }
+
+    return subDepartment;
   }
 }
