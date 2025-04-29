@@ -165,7 +165,19 @@ export class DepartmentsService {
   async remove(id: number) {
     this.logger.log(`Removing department ${id}`);
     const department = await this.findOne(id);
-    return await this.departmentsRepository.remove(department);
+
+    // Store department data before removal
+    const departmentToReturn = {
+      id: department.id,
+      name: department.name,
+      createdAt: department.createdAt,
+      updatedAt: department.updatedAt,
+      createdBy: department.createdBy,
+      subDepartments: department.subDepartments,
+    };
+
+    await this.departmentsRepository.remove(department);
+    return departmentToReturn;
   }
 
   async createSubDepartment(
@@ -231,12 +243,89 @@ export class DepartmentsService {
   async removeSubDepartment(id: number) {
     const subDepartment = await this.subDepartmentsRepository.findOne({
       where: { id },
+      relations: ["department"],
     });
 
     if (!subDepartment) {
       throw new SubDepartmentNotFoundException(id);
     }
 
-    return this.subDepartmentsRepository.remove(subDepartment);
+    // Store subdepartment data before removal
+    const subDepartmentToReturn = {
+      id: subDepartment.id,
+      name: subDepartment.name,
+      createdAt: subDepartment.createdAt,
+      updatedAt: subDepartment.updatedAt,
+      department: subDepartment.department,
+    };
+
+    await this.subDepartmentsRepository.remove(subDepartment);
+    return subDepartmentToReturn;
+  }
+
+  async findAllSubDepartments(
+    pagination: { page: number; limit: number },
+    currentUser: User,
+    departmentId?: number
+  ) {
+    this.logger.log(
+      `Fetching subdepartments with pagination: ${JSON.stringify(pagination)}, departmentId: ${departmentId}`
+    );
+    try {
+      // If departmentId is provided, verify it exists and belongs to the user
+      if (departmentId) {
+        const department = await this.departmentsRepository.findOne({
+          where: {
+            id: departmentId,
+            createdBy: { id: currentUser.id },
+          },
+        });
+
+        if (!department) {
+          throw new DepartmentNotFoundException(departmentId);
+        }
+      }
+
+      const { page, limit } = pagination;
+      const skip = (page - 1) * limit;
+
+      const queryBuilder = this.subDepartmentsRepository
+        .createQueryBuilder("subDepartment")
+        .innerJoinAndSelect("subDepartment.department", "department")
+        .innerJoinAndSelect("department.createdBy", "createdBy")
+        .where("createdBy.id = :userId", { userId: currentUser.id });
+
+      if (departmentId) {
+        queryBuilder.andWhere("department.id = :departmentId", {
+          departmentId,
+        });
+      }
+
+      const [subDepartments, total] = await queryBuilder
+        .skip(skip)
+        .take(limit)
+        .orderBy("subDepartment.createdAt", "DESC")
+        .getManyAndCount();
+
+      this.logger.log(`Found ${subDepartments.length} subdepartments`);
+      return {
+        subDepartments,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error fetching subdepartments: ${error.message}`,
+        error.stack
+      );
+      if (error instanceof DepartmentNotFoundException) {
+        throw error;
+      }
+      throw new InvalidDepartmentDataException(
+        "Failed to fetch subdepartments. Please check your input."
+      );
+    }
   }
 }

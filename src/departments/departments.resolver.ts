@@ -9,6 +9,7 @@ import { SubDepartmentInput } from "./dto/sub-department.input";
 import { UpdateSubDepartmentInput } from "./dto/sub-department.input";
 import { PaginationInput } from "./dto/department.input";
 import { PaginatedDepartments } from "./dto/pagination.result";
+import { PaginatedSubDepartments } from "./dto/pagination.result";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { DepartmentOwnershipGuard } from "./guards/department-ownership.guard";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
@@ -25,6 +26,21 @@ export class DepartmentsResolver {
     @CurrentUser() user: User
   ) {
     return this.departmentsService.findAll(pagination, user);
+  }
+
+  @Query(() => PaginatedSubDepartments)
+  @UseGuards(JwtAuthGuard)
+  async getSubDepartments(
+    @Args("pagination") pagination: PaginationInput,
+    @CurrentUser() user: User,
+    @Args("departmentId", { type: () => ID, nullable: true })
+    departmentId?: number
+  ) {
+    return this.departmentsService.findAllSubDepartments(
+      pagination,
+      user,
+      departmentId
+    );
   }
 
   @Query(() => Department)

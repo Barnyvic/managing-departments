@@ -50,8 +50,17 @@ type PaginatedDepartments {
   totalPages: Int!
 }
 
+type PaginatedSubDepartments {
+  subDepartments: [SubDepartment!]!
+  total: Int!
+  page: Int!
+  limit: Int!
+  totalPages: Int!
+}
+
 type Query {
   getDepartments(pagination: PaginationInput!): PaginatedDepartments!
+  getSubDepartments(pagination: PaginationInput!, departmentId: ID): PaginatedSubDepartments!
   getDepartment(id: ID!): Department!
 }
 
