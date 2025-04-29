@@ -12,14 +12,12 @@ async function bootstrap() {
   const port = configService.get("PORT") || 3000;
   const isProduction = process.env.NODE_ENV === "production";
 
-  // Enable CORS with specific options
   app.enableCors({
     origin: configService.get("CORS_ORIGIN") || "*",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
     credentials: true,
   });
 
-  // Session middleware (needed for some features)
   app.use(
     session({
       secret: configService.get("SESSION_SECRET") || "your-secret-key",
@@ -28,14 +26,15 @@ async function bootstrap() {
     })
   );
 
-  // Global validation pipe
   app.useGlobalPipes(new ValidationPipe());
 
-  // Add GraphQL error interceptor
   app.useGlobalInterceptors(new GraphQLErrorInterceptor());
 
-  // Security middleware
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+    })
+  );
 
   await app.listen(port);
   if (!isProduction) {
