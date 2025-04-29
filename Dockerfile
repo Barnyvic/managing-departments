@@ -19,10 +19,16 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy only the built files and node_modules from builder
+# Install production dependencies and ts-node
+COPY --from=builder /app/package*.json ./
+RUN npm install --production --legacy-peer-deps && \
+    npm install -g ts-node typescript --legacy-peer-deps
+
+# Copy necessary files
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/tsconfig.json ./
 COPY startup.sh /app/startup.sh
 
 # Make startup script executable
