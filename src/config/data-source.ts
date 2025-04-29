@@ -27,9 +27,9 @@ export const dataSourceOptions: DataSourceOptions = {
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
-  entities: ["dist/**/*.entity{.ts,.js}"],
-  migrations: ["dist/migrations/*{.ts,.js}"],
-  synchronize: !isProd,
+  entities: ["src/**/*.entity{.ts,.js}"],
+  migrations: ["src/migrations/*{.ts,.js}"],
+  synchronize: false,
   ssl:
     isProd || process.env.DB_SSL === "true"
       ? {
