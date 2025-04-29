@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args, ID } from "@nestjs/graphql";
-import { UnauthorizedException } from "@nestjs/common";
+import { UnauthorizedException, Logger } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import {
   AuthResponse,
@@ -13,10 +13,13 @@ import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @Resolver()
 export class AuthResolver {
+  private readonly logger = new Logger(AuthResolver.name);
+
   constructor(private readonly authService: AuthService) {}
 
   @Mutation(() => AuthResponse)
   async login(@Args("input") input: LoginInput): Promise<AuthResponse> {
+    this.logger.log(`Login attempt for user: ${input.username}`);
     const user = await this.authService.validateUser(
       input.username,
       input.password
@@ -31,6 +34,7 @@ export class AuthResolver {
   async register(
     @Args("input") input: RegisterInput
   ): Promise<RegisterResponse> {
+    this.logger.log(`Registration attempt for user: ${input.username}`);
     const user = await this.authService.register(
       input.username,
       input.password

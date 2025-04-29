@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException, Logger } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Department } from "./entities/department.entity";
 import { SubDepartment } from "./entities/sub-department.entity";
 import { CreateDepartmentInput } from "./dto/department.input";
 import { SubDepartmentInput } from "./dto/sub-department.input";
+import {
+  DepartmentNotFoundException,
+  SubDepartmentNotFoundException,
+  DepartmentNameConflictException,
+  InvalidDepartmentDataException,
+} from "../common/exceptions/department.exceptions";
 
 @Injectable()
 export class DepartmentsService {
@@ -30,6 +36,7 @@ export class DepartmentsService {
           relations: ["subDepartments"],
           skip,
           take: limit,
+          order: { createdAt: "DESC" },
         });
 
       this.logger.log(`Found ${departments.length} departments`);
@@ -51,25 +58,16 @@ export class DepartmentsService {
 
   async findOne(id: number) {
     this.logger.log(`Fetching department with id: ${id}`);
-    try {
-      const department = await this.departmentsRepository.findOne({
-        where: { id },
-        relations: ["subDepartments"],
-      });
+    const department = await this.departmentsRepository.findOne({
+      where: { id },
+      relations: ["subDepartments"],
+    });
 
-      if (!department) {
-        this.logger.warn(`Department with ID ${id} not found`);
-        throw new NotFoundException(`Department with ID ${id} not found`);
-      }
-
-      return department;
-    } catch (error) {
-      this.logger.error(
-        `Error fetching department ${id}: ${error.message}`,
-        error.stack
-      );
-      throw error;
+    if (!department) {
+      throw new DepartmentNotFoundException(id);
     }
+
+    return department;
   }
 
   async create(createDepartmentInput: CreateDepartmentInput) {
@@ -77,6 +75,15 @@ export class DepartmentsService {
       `Creating new department: ${JSON.stringify(createDepartmentInput)}`
     );
     try {
+      // Check if department with same name exists
+      const existingDepartment = await this.departmentsRepository.findOne({
+        where: { name: createDepartmentInput.name },
+      });
+
+      if (existingDepartment) {
+        throw new DepartmentNameConflictException(createDepartmentInput.name);
+      }
+
       const department = this.departmentsRepository.create({
         name: createDepartmentInput.name,
       });
@@ -95,14 +102,18 @@ export class DepartmentsService {
           await this.subDepartmentsRepository.save(subDepartments);
       }
 
-      this.logger.log(`Created department with id: ${savedDepartment.id}`);
       return savedDepartment;
     } catch (error) {
+      if (error instanceof DepartmentNameConflictException) {
+        throw error;
+      }
       this.logger.error(
         `Error creating department: ${error.message}`,
         error.stack
       );
-      throw error;
+      throw new InvalidDepartmentDataException(
+        "Failed to create department. Please check your input."
+      );
     }
   }
 
@@ -112,35 +123,37 @@ export class DepartmentsService {
     );
     try {
       const department = await this.findOne(id);
+
+      // Check if new name conflicts with existing department
+      if (updateDepartmentInput.name !== department.name) {
+        const existingDepartment = await this.departmentsRepository.findOne({
+          where: { name: updateDepartmentInput.name },
+        });
+
+        if (existingDepartment) {
+          throw new DepartmentNameConflictException(updateDepartmentInput.name);
+        }
+      }
+
       department.name = updateDepartmentInput.name;
-      const updatedDepartment =
-        await this.departmentsRepository.save(department);
-      this.logger.log(`Updated department ${id}`);
-      return updatedDepartment;
+      return await this.departmentsRepository.save(department);
     } catch (error) {
-      this.logger.error(
-        `Error updating department ${id}: ${error.message}`,
-        error.stack
+      if (
+        error instanceof DepartmentNotFoundException ||
+        error instanceof DepartmentNameConflictException
+      ) {
+        throw error;
+      }
+      throw new InvalidDepartmentDataException(
+        "Failed to update department. Please check your input."
       );
-      throw error;
     }
   }
 
   async remove(id: number) {
     this.logger.log(`Removing department ${id}`);
-    try {
-      const department = await this.findOne(id);
-      const removedDepartment =
-        await this.departmentsRepository.remove(department);
-      this.logger.log(`Removed department ${id}`);
-      return removedDepartment;
-    } catch (error) {
-      this.logger.error(
-        `Error removing department ${id}: ${error.message}`,
-        error.stack
-      );
-      throw error;
-    }
+    const department = await this.findOne(id);
+    return await this.departmentsRepository.remove(department);
   }
 
   async createSubDepartment(
@@ -148,6 +161,19 @@ export class DepartmentsService {
     subDepartmentInput: SubDepartmentInput
   ) {
     const department = await this.findOne(departmentId);
+
+    // Check if subdepartment with same name exists in the department
+    const existingSubDepartment = await this.subDepartmentsRepository.findOne({
+      where: {
+        name: subDepartmentInput.name,
+        department: { id: departmentId },
+      },
+    });
+
+    if (existingSubDepartment) {
+      throw new DepartmentNameConflictException(subDepartmentInput.name);
+    }
+
     const subDepartment = this.subDepartmentsRepository.create({
       ...subDepartmentInput,
       department,
@@ -161,10 +187,29 @@ export class DepartmentsService {
   ) {
     const subDepartment = await this.subDepartmentsRepository.findOne({
       where: { id },
+      relations: ["department"],
     });
 
     if (!subDepartment) {
-      throw new NotFoundException(`Sub-department with ID ${id} not found`);
+      throw new SubDepartmentNotFoundException(id);
+    }
+
+    // Check if new name conflicts with existing subdepartment in the same department
+    if (updateSubDepartmentInput.name !== subDepartment.name) {
+      const existingSubDepartment = await this.subDepartmentsRepository.findOne(
+        {
+          where: {
+            name: updateSubDepartmentInput.name,
+            department: { id: subDepartment.department.id },
+          },
+        }
+      );
+
+      if (existingSubDepartment) {
+        throw new DepartmentNameConflictException(
+          updateSubDepartmentInput.name
+        );
+      }
     }
 
     subDepartment.name = updateSubDepartmentInput.name;
@@ -177,7 +222,7 @@ export class DepartmentsService {
     });
 
     if (!subDepartment) {
-      throw new NotFoundException(`Sub-department with ID ${id} not found`);
+      throw new SubDepartmentNotFoundException(id);
     }
 
     return this.subDepartmentsRepository.remove(subDepartment);

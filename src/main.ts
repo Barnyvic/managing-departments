@@ -3,6 +3,7 @@ import { AppModule } from "./app.module";
 import { ConfigService } from "@nestjs/config";
 import * as session from "express-session";
 import { ValidationPipe } from "@nestjs/common";
+import { GraphQLErrorFilter } from "./common/filters/graphql-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -39,6 +40,9 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     })
   );
+
+  // Global error filter
+  app.useGlobalFilters(new GraphQLErrorFilter());
 
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
