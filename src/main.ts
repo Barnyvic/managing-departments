@@ -9,6 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const port = configService.get("port");
+  const isProduction = process.env.NODE_ENV === "production";
 
   // Enable CORS with specific options
   app.enableCors({
@@ -21,13 +22,15 @@ async function bootstrap() {
   // Session middleware (needed for some features)
   app.use(
     session({
-      secret: configService.get("SESSION_SECRET") || "your-session-secret",
+      secret: configService.get("SESSION_SECRET"),
       resave: false,
       saveUninitialized: false,
       cookie: {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
         sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000,
+        path: "/",
       },
     })
   );
@@ -38,6 +41,8 @@ async function bootstrap() {
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
+      forbidUnknownValues: true,
+      disableErrorMessages: isProduction,
     })
   );
 
@@ -45,7 +50,10 @@ async function bootstrap() {
   app.useGlobalFilters(new GraphQLErrorFilter());
 
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`GraphQL Playground: http://localhost:${port}/graphql`);
+  if (!isProduction) {
+    console.log(`Application is running on: http://localhost:${port}`);
+    console.log(`GraphQL Playground: http://localhost:${port}/graphql`);
+  }
 }
+
 bootstrap();

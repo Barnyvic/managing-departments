@@ -11,6 +11,7 @@ import { LoggerMiddleware } from "./middleware/logger.middleware";
 import { LoggingPlugin } from "./plugins/logging.plugin";
 import { join } from "path";
 import { dataSourceOptions } from "./config/data-source";
+import { GraphQLError, GraphQLFormattedError } from "graphql";
 
 @Module({
   imports: [
@@ -29,6 +30,25 @@ import { dataSourceOptions } from "./config/data-source";
       },
       introspection: true,
       path: "/graphql",
+      formatError: (error: GraphQLError): GraphQLFormattedError => {
+        const isProduction = process.env.NODE_ENV === "production";
+        if (isProduction) {
+          const extensions = { ...error.extensions };
+          if (extensions.exception) {
+            const exception = extensions.exception as Record<string, unknown>;
+            delete exception.stacktrace;
+          }
+          if (extensions.code !== "NOT_FOUND") {
+            return {
+              message: "Internal server error",
+              extensions,
+              locations: error.locations,
+              path: error.path,
+            };
+          }
+        }
+        return error;
+      },
     }),
     ThrottlerModule.forRoot([
       {

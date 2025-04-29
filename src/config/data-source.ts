@@ -1,24 +1,40 @@
 import { DataSource, DataSourceOptions } from "typeorm";
-import { ConfigService } from "@nestjs/config";
 import { config } from "dotenv";
-import { join } from "path";
 
+// Load environment variables
 config();
 
-const configService = new ConfigService();
+// Validate required environment variables
+const required = [
+  "DB_HOST",
+  "DB_PORT",
+  "DB_USERNAME",
+  "DB_PASSWORD",
+  "DB_DATABASE",
+];
+for (const key of required) {
+  if (!process.env[key]) {
+    throw new Error(`${key} environment variable is required`);
+  }
+}
 
 export const dataSourceOptions: DataSourceOptions = {
   type: "postgres",
-  host: configService.get("DB_HOST") || "localhost",
-  port: parseInt(configService.get("DB_PORT") || "5432", 10),
-  username: configService.get("DB_USERNAME") || "postgres",
-  password: configService.get("DB_PASSWORD") || "postgres",
-  database: configService.get("DB_DATABASE") || "department_management",
-  entities: [join(__dirname, "..", "**", "*.entity{.ts,.js}")],
-  migrations: [join(__dirname, "..", "migrations", "*{.ts,.js}")],
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT, 10),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+  entities: ["dist/**/*.entity{.ts,.js}"],
+  migrations: ["dist/migrations/*{.ts,.js}"],
   synchronize: process.env.NODE_ENV !== "production",
+  ssl:
+    process.env.DB_SSL === "true"
+      ? {
+          rejectUnauthorized: false,
+        }
+      : false,
   logging: process.env.NODE_ENV !== "production",
-  migrationsTableName: "migrations",
 };
 
 const dataSource = new DataSource(dataSourceOptions);
