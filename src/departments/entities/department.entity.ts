@@ -6,8 +6,10 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
 } from "typeorm";
 import { SubDepartment } from "./sub-department.entity";
+import { User } from "../../auth/entities/user.entity";
 
 @ObjectType()
 @Entity()
@@ -23,6 +25,10 @@ export class Department {
   @Field(() => [SubDepartment], { nullable: true })
   @OneToMany(() => SubDepartment, (subDepartment) => subDepartment.department)
   subDepartments: SubDepartment[];
+
+  @Field(() => User)
+  @ManyToOne(() => User, { eager: true })
+  createdBy: User;
 
   @Field()
   @CreateDateColumn()

@@ -5,6 +5,7 @@ import { Department } from "./entities/department.entity";
 import { SubDepartment } from "./entities/sub-department.entity";
 import { CreateDepartmentInput } from "./dto/department.input";
 import { SubDepartmentInput } from "./dto/sub-department.input";
+import { User } from "../auth/entities/user.entity";
 import {
   DepartmentNotFoundException,
   SubDepartmentNotFoundException,
@@ -23,7 +24,10 @@ export class DepartmentsService {
     private subDepartmentsRepository: Repository<SubDepartment>
   ) {}
 
-  async findAll(pagination: { page: number; limit: number }) {
+  async findAll(
+    pagination: { page: number; limit: number },
+    currentUser: User
+  ) {
     this.logger.log(
       `Fetching departments with pagination: ${JSON.stringify(pagination)}`
     );
@@ -33,6 +37,7 @@ export class DepartmentsService {
 
       const [departments, total] =
         await this.departmentsRepository.findAndCount({
+          where: { createdBy: { id: currentUser.id } },
           relations: ["subDepartments"],
           skip,
           take: limit,
@@ -60,7 +65,7 @@ export class DepartmentsService {
     this.logger.log(`Fetching department with id: ${id}`);
     const department = await this.departmentsRepository.findOne({
       where: { id },
-      relations: ["subDepartments"],
+      relations: ["subDepartments", "createdBy"],
     });
 
     if (!department) {
@@ -70,14 +75,20 @@ export class DepartmentsService {
     return department;
   }
 
-  async create(createDepartmentInput: CreateDepartmentInput) {
+  async create(
+    createDepartmentInput: CreateDepartmentInput,
+    currentUser: User
+  ) {
     this.logger.log(
       `Creating new department: ${JSON.stringify(createDepartmentInput)}`
     );
     try {
-      // Check if department with same name exists
+      // Check if department with same name exists for this user
       const existingDepartment = await this.departmentsRepository.findOne({
-        where: { name: createDepartmentInput.name },
+        where: {
+          name: createDepartmentInput.name,
+          createdBy: { id: currentUser.id },
+        },
       });
 
       if (existingDepartment) {
@@ -86,6 +97,7 @@ export class DepartmentsService {
 
       const department = this.departmentsRepository.create({
         name: createDepartmentInput.name,
+        createdBy: currentUser,
       });
 
       const savedDepartment = await this.departmentsRepository.save(department);
