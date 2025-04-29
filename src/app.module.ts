@@ -1,32 +1,20 @@
-import { Module } from "@nestjs/common";
+import { Module, NestModule, MiddlewareConsumer } from "@nestjs/common";
 import { GraphQLModule } from "@nestjs/graphql";
 import { ApolloDriver, ApolloDriverConfig } from "@nestjs/apollo";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
-import { join } from "path";
 import { AuthModule } from "./auth/auth.module";
 import { DepartmentsModule } from "./departments/departments.module";
 import configuration from "./config/configuration";
+import { LoggerMiddleware } from "./middleware/logger.middleware";
+import { LoggingPlugin } from "./plugins/logging.plugin";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-    }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60,
-        limit: 10,
-      },
-    ]),
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
-      autoSchemaFile: join(process.cwd(), "src/schema.gql"),
-      sortSchema: true,
-      playground: true,
-      introspection: true,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -35,17 +23,32 @@ import configuration from "./config/configuration";
         host: configService.get("database.host"),
         port: configService.get("database.port"),
         username: configService.get("database.username"),
-        password: configService.get("database.password") || "",
+        password: configService.get("database.password"),
         database: configService.get("database.database"),
-        entities: [__dirname + "/**/*.entity{.ts,.js}"],
+        autoLoadEntities: true,
         synchronize: false,
-        migrations: [__dirname + "/migrations/*{.ts,.js}"],
-        migrationsTableName: "migrations",
       }),
       inject: [ConfigService],
     }),
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      autoSchemaFile: true,
+      playground: true,
+      plugins: [new LoggingPlugin()],
+    }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60,
+        limit: 10,
+      },
+    ]),
     AuthModule,
     DepartmentsModule,
   ],
+  providers: [LoggingPlugin],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes("graphql");
+  }
+}
